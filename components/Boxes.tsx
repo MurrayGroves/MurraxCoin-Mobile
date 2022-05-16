@@ -1,5 +1,6 @@
 import { Text, View } from './Themed';
-import { Button } from 'react-native';
+import { TextInput } from 'react-native';
+import React from 'react';
 
 export default function Box(props) {
     let style = {
@@ -71,6 +72,25 @@ export function SecondaryBox(props) {
     return (
         <Box style={style}>
             {props.children}
+        </Box>
+    )
+}
+
+export function TextInputBox(props) {
+    let style = {
+        backgroundColor: `#FFFFFF`,
+    }
+
+    if (props.style) {
+        style = {
+            ...style,
+            ...props.style
+        }
+    }
+
+    return (
+        <Box style={style}>
+            <TextInput style={{fontSize: 25, color: 'rgba(0,0,0,0.3)'}} onChange={props.onChange} value={props.value} placeholder={props.placeholder}/>
         </Box>
     )
 }
