@@ -19,16 +19,20 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "murraxcoin.mobile"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "murraxcoin.mobile"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
-    }
+    },
+    "plugins": [
+    ]
   }
 }

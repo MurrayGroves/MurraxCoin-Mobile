@@ -4,9 +4,9 @@ import { Text, View} from '../components/Themed';
 import { PrimaryBox, SecondaryBox } from '../components/Boxes';
 import React from 'react';
 
-export default function ReceiveScreen({ navigation }) {
-    let address = "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q";
-    let address_clean = `${address.slice(0,10)}...${address.slice(-6)}`;
+export default function ReceiveScreen({ route, navigation }) {
+    const { myAddress, setMyAddress, publicKey, setPublicKey, privateKey, setPrivateKey } = route.params.SharedMxcAccountState();
+    let address_clean = `${myAddress.slice(0,10)}...${myAddress.slice(-6)}`;
     return (
         <View style={styles.outer}>
             <View style={styles.container}>
@@ -51,7 +51,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     margin: "5%",
-    marginTop: "10%",
     alignSelf: "stretch"
   },
   outer : {
