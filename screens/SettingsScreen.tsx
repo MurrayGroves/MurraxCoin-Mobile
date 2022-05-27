@@ -2,10 +2,50 @@ import { FlatList, StyleSheet, Image, Pressable} from 'react-native';
 
 import { Text, View} from '../components/Themed';
 import { PrimaryBox, SecondaryBox } from '../components/Boxes';
-import React from 'react';
+import React, { useState } from "react";
+import { useBetween } from "use-between";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getMXCKeyPair, getWSKeyPair, keyToAddress } from '../components/MurraxCoin';
+
 
 export default function SettingsScreen({ route, navigation }) {
-    const { myAddress, setMyAddress, publicKey, setPublicKey, privateKey, setPrivateKey } = route.params.SharedMxcAccountState();
+    let mxcKeyPair = null;
+    let wsKeyPair = null;
+
+    const mxcAccountState = () => {
+        const [myAddress, setMyAddress] = useState("");
+        const [privateKey, setPrivateKey] = useState("");
+        const [publicKey, setPublicKey] = useState("");
+        return {
+          myAddress, setMyAddress, privateKey, setPrivateKey, publicKey, setPublicKey
+        };
+    };
+    
+    const { myAddress, setMyAddress, publicKey, setPublicKey, privateKey, setPrivateKey } = mxcAccountState();
+
+    AsyncStorage.getItem("mxcPrivateKey").then(value => {
+        if (value === null) {
+          console.log("wtf")
+          Alert.alert(
+            "Please Wait!",
+            "App will be unresponsive while your keys are being generated. This may take a few minutes.",
+          )
+        }
+    
+        if (myAddress !== "") {
+          return;
+        }
+    
+        getMXCKeyPair().then(pair => {
+          mxcKeyPair = pair;
+          const address = keyToAddress(pair.publicKey);
+          setMyAddress(address);
+            
+          getWSKeyPair().then(pair => {
+            wsKeyPair = pair;
+          })
+        });
+      })
 
     let address = "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q";
     let address_clean = `${myAddress.slice(0,10)}...${myAddress.slice(-6)}`;

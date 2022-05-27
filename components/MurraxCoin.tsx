@@ -2,7 +2,13 @@
 
 import JSEncrypt from "jsencrypt";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ed from '@noble/ed25519';
+import nacl from "react-native-tweetnacl";
+import {
+  decodeUTF8,
+  encodeUTF8,
+  encodeBase64,
+  decodeBase64  
+} from "tweetnacl-util";
 
 import { Alert } from 'react-native';
 
@@ -12,7 +18,6 @@ import * as base32 from 'hi-base32';
 export async function getWSKeyPair() {
     const privateKey = await AsyncStorage.getItem('wsPrivateKey');
     if (privateKey !== null) {
-        console.log("ws private key found");
         return {
             privateKey: privateKey,
             publicKey: await AsyncStorage.getItem('wsPublicKey')
@@ -37,15 +42,17 @@ export async function getWSKeyPair() {
 export async function getMXCKeyPair() {
     const privateKey = await AsyncStorage.getItem('mxcPrivateKey');
     if (privateKey !== null) {
-        console.log("mxc pair found")
         return {
             privateKey: Uint8Array.from(privateKey),
             publicKey: Uint8Array.from(await AsyncStorage.getItem('mxcPublicKey'))
         }
     } else {
         console.log("generating mxc pair")
-        const privateKey = ed.utils.randomPrivateKey();
-        const publicKey = await ed.getPublicKey(privateKey);
+        const generateKeyPair = () => nacl.nacl.sign.keyPair();
+        const pair = generateKeyPair();
+        const privateKey = pair.secretKey;
+        console.log("Generated privkey")
+        const publicKey = pair.publicKey;
 
         console.log("mxc key generation complete")
 
@@ -60,9 +67,9 @@ export async function getMXCKeyPair() {
 }
 
 export function keyToAddress(publicKey) {
-    const checksum = ADLER32.buf(publicKey);
-    const checksum_clean = base32.encode(checksum).replace('=', '').lower();
-    const address_fragment = base32.encode(publicKey).replace('=', '').lower();
+    const checksum = adler32.buf(publicKey);
+    const checksum_clean = base32.encode(checksum).replace(/=/g, '').toLowerCase();
+    const address_fragment = base32.encode(publicKey).replace(/=/g, '').toLowerCase();
     const address = `mxc_${address_fragment}`;
 
     return address;

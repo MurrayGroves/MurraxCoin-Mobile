@@ -1,4 +1,7 @@
-import './shim';
+import './shim.js'
+import crypto from 'crypto';
+
+console.log(crypto)
 import 'stream-browserify';
 
 import React, { useState } from "react";
@@ -18,14 +21,16 @@ import ReceiveScreen from './screens/ReceiveScreen';
 import SendScreen from './screens/SendScreen';
 import SettingsScreen from './screens/SettingsScreen';
 
-import PolyfillCrypto from 'react-native-webview-crypto'
+import 'react-native-get-random-values'
+
+//import PolyfillCrypto from 'react-native-webview-crypto'
 
 const Stack = createNativeStackNavigator();
+
 
 export default function App() {
   return (
     <>
-    <PolyfillCrypto/>
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Home" component={HomeScreen} />

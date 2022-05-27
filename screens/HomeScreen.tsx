@@ -6,45 +6,48 @@ import React, { useState } from "react";
 import { useBetween } from "use-between";
 import { getMXCKeyPair, getWSKeyPair, keyToAddress } from '../components/MurraxCoin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+//import crypto from 'crypto';
+
 
 export default function HomeScreen({ route, navigation }) {
   let mxcKeyPair = null;
   let wsKeyPair = null;
   var my_address = "";
 
-  if (!route.params || !route.params.SharedMxcAccountState) {
-    const mxcAccountState = () => {
-      const [myAddress, setMyAddress] = useState("");
-      const [privateKey, setPrivateKey] = useState("");
-      const [publicKey, setPublicKey] = useState("");
-      return {
-        myAddress, setMyAddress, privateKey, setPrivateKey, publicKey, setPublicKey
-      };
+  //crypto.web = window.crypto;
+  const mxcAccountState = () => {
+    const [myAddress, setMyAddress] = useState("");
+    const [privateKey, setPrivateKey] = useState("");
+    const [publicKey, setPublicKey] = useState("");
+    return {
+      myAddress, setMyAddress, privateKey, setPrivateKey, publicKey, setPublicKey
     };
-    
-    var sharedMxcAccountState = () => useBetween(mxcAccountState);
-  } else {
-    var sharedMxcAccountState = route.params.SharedMxcAccountState;
-  }
+  };
 
-  const { myAddress, setMyAddress, publicKey, setPublicKey, privateKey, setPrivateKey } = sharedMxcAccountState();
-
-  AsyncStorage.getItem("wsPrivateKey").then(value => {
+  const { myAddress, setMyAddress, publicKey, setPublicKey, privateKey, setPrivateKey } = mxcAccountState();
+  AsyncStorage.getItem("mxcPrivateKey").then(value => {
+    console.log(myAddress);
     if (value === null) {
+      console.log("wtf")
       Alert.alert(
         "Please Wait!",
         "App will be unresponsive while your keys are being generated. This may take a few minutes.",
       )
     }
 
+    if (myAddress !== "") {
+      return;
+    }
+
     getMXCKeyPair().then(pair => {
       mxcKeyPair = pair;
-      setMyAddress(keyToAddress(mxcKeyPair.publicKey));
+      const address = keyToAddress(pair.publicKey);
+      setMyAddress(address);
+        
+      getWSKeyPair().then(pair => {
+        wsKeyPair = pair;
+      })
     });
-  
-    getWSKeyPair().then(pair => {
-      wsKeyPair = pair;
-    })
   })
 
   let transactions = [{key: 1, type: "receive", amount: 12, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 2, type:"send", amount: 45, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 3, type: "claim", amount:39.713, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 4, type: "claim", amount: 39.714, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}]
@@ -93,7 +96,7 @@ export default function HomeScreen({ route, navigation }) {
       <View style={styles.container}>
         <PrimaryBox style={{flex: 0.2, borderRadius: 20}}>
           <View style={{flex: 1, flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0)', width: '100%'}}>
-            <Pressable onPress={() => navigation.navigate("Settings", {SharedMxcAccountState: sharedMxcAccountState})}>
+            <Pressable onPress={() => navigation.navigate("Settings")}>
               <Image source={require('../assets/images/cog-icon.png')} style={{margin: 10, height: 24, width: 24, alignSelf: 'flex-start'}}/>
             </Pressable>
             <View style={{alignItems: 'center', flex: 0.8, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0)'}}>
@@ -109,13 +112,13 @@ export default function HomeScreen({ route, navigation }) {
         <FlatList style={{flex: 1, alignSelf: "stretch"}} data={transactions} renderItem={renderTransaction}/>
 
         <View style={{flex: 0.2, flexDirection: 'row'}}>
-          <Pressable onPress={() => navigation.navigate("Receive", {SharedMxcAccountState: sharedMxcAccountState})} style={{flex:1, height: 70, bottom: -30}}>
+          <Pressable onPress={() => navigation.navigate("Receive")} style={{flex:1, height: 70, bottom: -30}}>
               <SecondaryBox style={{opacity: 1, flex:1, marginRight:10, height: 70}}>
                   <Text style={{fontSize: 25, color: '#121212'}}>Receive</Text>
               </SecondaryBox>
           </Pressable>
 
-          <Pressable onPress={() => navigation.navigate("Send", {SharedMxcAccountState: sharedMxcAccountState})} style={{flex:1, height: 70, bottom: -30}}>
+          <Pressable onPress={() => navigation.navigate("Send")} style={{flex:1, height: 70, bottom: -30}}>
             <SecondaryBox style={{opacity: 1, flex:1, marginLeft: 10, height: 70}}>
               <Text style={{fontSize: 25, color: '#121212'}}>Send</Text>
             </SecondaryBox>
