@@ -3,34 +3,63 @@
 import JSEncrypt from "jsencrypt";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import nacl from "react-native-tweetnacl";
-import {
-  decodeUTF8,
-  encodeUTF8,
-  encodeBase64,
-  decodeBase64  
-} from "tweetnacl-util";
 
 import { Alert } from 'react-native';
 
 import * as adler32 from 'adler-32';
 import * as base32 from 'hi-base32';
+var forge = require('node-forge');
+
+function toHexString(byteArray) {
+  return Array.prototype.map.call(byteArray, function(byte) {
+    return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+  }).join('');
+}
+function toByteArray(hexString) {
+  var result = [];
+  for (var i = 0; i < hexString.length; i += 2) {
+    result.push(parseInt(hexString.substr(i, 2), 16));
+  }
+  return result;
+}
+
+function stringFromArray(data)
+{
+  var count = data.length;
+  var str = "";
+  
+  for(var index = 0; index < count; index += 1)
+    str += String.fromCharCode(data[index]);
+  
+  return str;
+}
 
 export async function getWSKeyPair() {
     const privateKey = await AsyncStorage.getItem('wsPrivateKey');
     if (privateKey !== null) {
         return {
-            privateKey: privateKey,
-            publicKey: await AsyncStorage.getItem('wsPublicKey')
+            privateKey: forge.pki.privateKeyFromPem(privateKey),
+            publicKey: forge.pki.publicKeyFromPem(await AsyncStorage.getItem('wsPublicKey'))
         }
     } else {
         console.log("generating ws key")
-        const keyPair = new JSEncrypt({default_key_size: '2048'});
-        const privateKey = keyPair.getPrivateKey();
-        const publicKey = keyPair.getPublicKey();
+        const keypair = await new Promise((resolve, reject) => {
+            forge.pki.rsa.generateKeyPair({bits: 2048, workers: -1}, function(err, keypair) {
+                if (err) {
+                    reject(err);
+                }
+                
+                resolve(keypair)
+            });
+        })
+        
+        
+        const privateKey = keypair.privateKey;
+        const publicKey = keypair.publicKey;
         console.log("ws key generation complete")
 
-        await AsyncStorage.setItem('wsPrivateKey', privateKey);
-        await AsyncStorage.setItem('wsPublicKey', publicKey);
+        await AsyncStorage.setItem('wsPrivateKey', forge.pki.privateKeyToPem(privateKey));
+        await AsyncStorage.setItem('wsPublicKey', forge.pki.publicKeyToPem(publicKey));
 
         return {
             privateKey,
@@ -43,8 +72,8 @@ export async function getMXCKeyPair() {
     const privateKey = await AsyncStorage.getItem('mxcPrivateKey');
     if (privateKey !== null) {
         return {
-            privateKey: Uint8Array.from(privateKey),
-            publicKey: Uint8Array.from(await AsyncStorage.getItem('mxcPublicKey'))
+            privateKey: toByteArray(privateKey),
+            publicKey: toByteArray(await AsyncStorage.getItem('mxcPublicKey'))
         }
     } else {
         console.log("generating mxc pair")
@@ -56,8 +85,8 @@ export async function getMXCKeyPair() {
 
         console.log("mxc key generation complete")
 
-        await AsyncStorage.setItem('mxcPrivateKey', privateKey.toString());
-        await AsyncStorage.setItem('mxcPublicKey', publicKey.toString());
+        await AsyncStorage.setItem('mxcPrivateKey', toHexString(privateKey));
+        await AsyncStorage.setItem('mxcPublicKey', toHexString(publicKey));
 
         return {
             privateKey,
@@ -77,62 +106,88 @@ export function keyToAddress(publicKey) {
 
 export class WebSocketSecure {
     url: string;
-    handshakeCipher: JSEncrypt;
+    sessionKey: any;
+    websocket: WebSocket;
+    publicKey: any;
+    privateKey: any;
+    messagePending: boolean;
+    previousResponse: any;
 
     constructor(url: string) {
         this.url = url;
-        this.handshakeCipher = new JSEncrypt({default_key_size: '2048'});
-        this.publicKey = this.handshakeCipher.getPrivateKey();
-        //console.log(this.publicKey)
+        this.messagePending = false;
+        this.previousResponse = null;
+        this.sessionKey = null;
     }
 
-    /*
-    initiateConnection() {
+    async request(data: Object) {
+        while (this.sessionKey === null) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+
+        const cipher = forge.cipher.createCipher('AES-GCM', await this.getSessionKey());
+        const iv = forge.random.getBytesSync(16);
+        cipher.start({iv: iv});
+        cipher.update(forge.util.createBuffer(JSON.stringify(data), 'utf-8'));
+        cipher.finish();
+
+        const ciphertext = forge.util.encode64(cipher.output.getBytes());
+        const tag = forge.util.encode64(cipher.mode.tag.getBytes());
+        const nonce = forge.util.encode64(iv);
+
+        const message = `${ciphertext}|||${tag}|||${nonce}`;
+        while (this.messagePending == true) { // Another message is queued, so wait
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        this.messagePending = true;
+        this.websocket.onmessage = (event) => {
+            this.previousResponse = event.data;
+        }
+        this.websocket.send(message);
+        while (this.previousResponse === null) { // Wait for response
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        const response = this.previousResponse;
+        this.previousResponse = null;
+
+        let ciphertextIn, tagIn, nonceIn;
+        [ciphertextIn, tagIn, nonceIn] = response.split('|||');
+
+        const decipher = forge.cipher.createDecipher('AES-GCM', await this.getSessionKey());
+        decipher.start({iv: forge.util.decode64(nonceIn), tag: forge.util.decode64(tagIn)});
+        decipher.update(forge.util.createBuffer(forge.util.decode64(ciphertextIn)));
+        decipher.finish();
+
+        const plaintext = decipher.output;
+        const json = JSON.parse(plaintext.toString());
+
+        return json;
+    }
+    
+    async connect() {
+        const keyPair = await getWSKeyPair();
+        this.publicKey = keyPair.publicKey;
+        this.privateKey = keyPair.privateKey;
+
         this.websocket = new WebSocket(this.url);
-        this.websocket.send(handshakePublicKeyStr)
+        this.websocket.onopen = () => {
+            this.websocket.send(forge.pki.publicKeyToPem(this.publicKey));
+        }
 
-        addEventListener('message', event => {
+        this.websocket.onmessage = (event) => {
             let handshakeData = JSON.parse(event.data);
-            for (var bytes = [], c = 0; c < handshakeData["sessionKey"].length; c += 2) {
-                bytes.push(parseInt(handshakeData["sessionKey"].substr(c, 2), 16));
-            }
+            const bytes = forge.util.binary.base64.decode(forge.util.encodeUtf8(handshakeData["sessionKey"]))
 
-            this.sessionKey = this.handshakeCipher.decrypt(bytes);
-        });
+            this.sessionKey = this.privateKey.decrypt(bytes, "RSA-OAEP", {
+                md: forge.md.sha1.create(),
+                mgf1: {
+                    md: forge.md.sha1.create()
+                }
+            })
+        }
     }
 
-    
-    connect(url){        
-        await asyncio.wait({self.initiateConnection()})
-        for i in range(200):
-            try:
-                self.sessionKey
-                return self
-
-            except:
-                await asyncio.sleep(0.1)
-
-        raise TimeoutError
+    async getSessionKey() {
+        return forge.util.createBuffer(this.sessionKey, "utf-8");
     }
-
-    recv(){
-        data = await self.websocket.recv()
-        ciphertext, tag, nonce = data.split("|||")
-        ciphertext, tag, nonce = bytes.fromhex(ciphertext), bytes.fromhex(tag), bytes.fromhex(nonce)
-        cipher = AES.new(self.sessionKey, AES.MODE_EAX, nonce)
-        plaintext = cipher.decrypt_and_verify(ciphertext, tag)
-        plaintext = plaintext.decode("utf-8")
-    
-        return plaintext
-    }
-
-    send(plaintext){
-        cipher = AES.new(self.sessionKey, AES.MODE_EAX)
-        ciphertext, tag = cipher.encrypt_and_digest(plaintext.encode("utf-8"))
-        await self.websocket.send(ciphertext.hex() + "|||" + tag.hex() + "|||" + cipher.nonce.hex())
-    }
-
-    close(){
-        self.websocket.close()
-    } */
 }

@@ -5921,10 +5921,6 @@
   "resolved" "https://registry.npmjs.org/js-base64/-/js-base64-2.6.4.tgz"
   "version" "2.6.4"
 
-"js-big-integer@github:Yaffle/BigInteger":
-  "resolved" "git+ssh://git@github.com/Yaffle/BigInteger.git#488a7ac5c9f3e3f451302da555d7eed399da78a2"
-  "version" "3.0.20"
-
 "js-tokens@^3.0.0 || ^4.0.0", "js-tokens@^4.0.0":
   "integrity" "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="
   "resolved" "https://registry.npmjs.org/js-tokens/-/js-tokens-4.0.0.tgz"
@@ -7801,7 +7797,7 @@
     "level-filesystem" "^1.0.1"
     "levelup" "^0.18.2"
 
-"react-native-os@^1.2.2", "react-native-os@^1.2.6":
+"react-native-os@^1.2.2":
   "integrity" "sha512-OlT+xQAcvkcnf7imgXiu+myMkqDt4xw2bP5SlVo19hEn5XHBkPMLX7dk3sSGxxncH/ToMDsf1KLyrPabNVtadA=="
   "resolved" "https://registry.npmjs.org/react-native-os/-/react-native-os-1.2.6.tgz"
   "version" "1.2.6"
@@ -7835,7 +7831,7 @@
     "base64-js" "^1.2.0"
     "ieee754" "^1.1.8"
 
-"react-native-tcp@^3.3.0", "react-native-tcp@^3.3.2":
+"react-native-tcp@^3.3.0":
   "integrity" "sha512-zjFmjAvYOsBkR1MF7htuPlk+uOzTykKaeu/eN+I7fkZ7UqBCW+9u/gJgWCv6Tjfn2tGgku6hsEWril4Oy3zJhg=="
   "resolved" "https://registry.npmjs.org/react-native-tcp/-/react-native-tcp-3.3.2.tgz"
   "version" "3.3.2"
@@ -7881,7 +7877,7 @@
     "util" "^0.10.4"
     "vm-browserify" "0.0.4"
 
-"react-native-udp@^2.3.1", "react-native-udp@^2.7.0":
+"react-native-udp@^2.3.1":
   "integrity" "sha512-tT+Wn0yLbdaTohXkGGor0HYgScGaASWCaCLSO1kCIUdNke7AtcOX5a5nfNLYrEjdUn7/2HRofuplyky7iJHSQA=="
   "resolved" "https://registry.npmjs.org/react-native-udp/-/react-native-udp-2.7.0.tgz"
   "version" "2.7.0"

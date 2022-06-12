@@ -13,15 +13,16 @@ export default function SettingsScreen({ route, navigation }) {
     let wsKeyPair = null;
 
     const mxcAccountState = () => {
-        const [myAddress, setMyAddress] = useState("");
-        const [privateKey, setPrivateKey] = useState("");
-        const [publicKey, setPublicKey] = useState("");
-        return {
-          myAddress, setMyAddress, privateKey, setPrivateKey, publicKey, setPublicKey
-        };
+      const [myAddress, setMyAddress] = useState("");
+      const [privateKey, setPrivateKey] = useState("");
+      const [publicKey, setPublicKey] = useState("");
+      const [balance, setBalance] = useState(0.0);
+      return {
+        myAddress, setMyAddress, privateKey, setPrivateKey, publicKey, setPublicKey, balance, setBalance
+      };
     };
-    
-    const { myAddress, setMyAddress, publicKey, setPublicKey, privateKey, setPrivateKey } = mxcAccountState();
+  
+    const { myAddress, setMyAddress, publicKey, setPublicKey, privateKey, setPrivateKey, balance, setBalance } = mxcAccountState();
 
     AsyncStorage.getItem("mxcPrivateKey").then(value => {
         if (value === null) {
