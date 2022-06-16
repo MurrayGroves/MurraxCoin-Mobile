@@ -4,7 +4,7 @@ import crypto from 'crypto';
 console.log(crypto)
 import 'stream-browserify';
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useBetween } from "use-between";
 
 import { StatusBar } from 'expo-status-bar';
@@ -21,14 +21,36 @@ import ReceiveScreen from './screens/ReceiveScreen';
 import SendScreen from './screens/SendScreen';
 import SettingsScreen from './screens/SettingsScreen';
 
+import { MurraxCoin, getMXCKeyPair } from './components/MurraxCoin';
+
 import 'react-native-get-random-values'
 
 //import PolyfillCrypto from 'react-native-webview-crypto'
 
 const Stack = createNativeStackNavigator();
 
+const mxcState = () => {
+  const [mxc, setMxc] = useState(Object);
+  return {mxc, setMxc};
+}
+
+export const sharedMxcState = () => useBetween(mxcState);
+
 
 export default function App() {
+  const {mxc, setMxc} = sharedMxcState();
+
+  useEffect(() => {
+    const construct = async () => {
+      const murraxcoin = await MurraxCoin.new("ws://murraxcoin.murraygrov.es:6969", setMxc);
+      await murraxcoin.pending_send();
+      await murraxcoin.get_balance();
+      setMxc(murraxcoin);
+    }
+  
+    construct().catch(console.error)
+  }, [])
+
   return (
     <>
     <NavigationContainer>

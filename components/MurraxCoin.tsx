@@ -8,6 +8,7 @@ import { Alert } from 'react-native';
 
 import * as adler32 from 'adler-32';
 import * as base32 from 'hi-base32';
+import { send } from "process";
 var forge = require('node-forge');
 var blake2b = require('blake2b')
 
@@ -107,16 +108,17 @@ function keyToAddress(publicKey) {
 
 function hash_block(block) {
     let output = new Uint8Array(64);
-    let input = Buffer.from(JSON.stringify(block));
+    let input = Buffer.from(JSON.stringify(block, null, 1).replace(/^ +/gm, " ").replace(/\n/g, "").replace(/{ /g, "{").replace(/ }/g, "}").replace(/\[ /g, "[").replace(/ \]/g, "]"));
 
     const hash = blake2b(output.length).update(input).digest("hex");
     return hash
 }
 
 function sign_block(block, privateKey) {
-    const data = Buffer.from(JSON.stringify(block));
-    const signature = nacl.nacl.sign.detached(data, privateKey);
-    return signature;
+    const data = Buffer.from(JSON.stringify(block, null, 1).replace(/^ +/gm, " ").replace(/\n/g, "").replace(/{ /g, "{").replace(/ }/g, "}").replace(/\[ /g, "[").replace(/ \]/g, "]"));
+    const signature = nacl.nacl.sign.detached(data, Uint8Array.from(privateKey));
+
+    return toHexString(signature.reverse());
 }
 
 export class MurraxCoin {
@@ -124,30 +126,47 @@ export class MurraxCoin {
     publicKey: any;
     websocket: WebSocketSecure;
     address: string;
+    address_display: string;
+    balance: number;
+    set_state: any;
 
-    constructor(node: string) {
-        this.websocket = new WebSocketSecure(node);
-        this.address = "";
-        getMXCKeyPair().then(keypair => {
-            this.privateKey = keypair.privateKey;
-            this.publicKey = keypair.publicKey;
-            this.address = keyToAddress(this.publicKey);
-        })
+    constructor(node: string, keypair: any, websocket: WebSocketSecure, set_state: any) {
+        this.websocket = websocket;
+        this.privateKey = keypair.privateKey;
+        this.publicKey = keypair.publicKey;
+        this.address = keyToAddress(this.publicKey);
+        this.address_display = `${this.address.slice(0,10)}...${this.address.slice(-6)}`;
+        this.balance = 0.0;
+        this.set_state = set_state;
+        this.websocket.set_receive_callback(this.receive.bind(this))
+    }
+
+    static async new(node: string, set_state: any) {
+        const keypair = await getMXCKeyPair();
+        const websocket = new WebSocketSecure(node);
+        await websocket.connect();
+        await websocket.request({"type": "watchForSends", "address": keyToAddress(keypair.publicKey)});
+        return new MurraxCoin(node, keypair, websocket, set_state)
     }
 
     async get_balance() {
         const response = await this.websocket.request({"type": "balance", "address": this.address});
-        if (response.type === "balance") {
-            return parseFloat(response.balance);
+        if (response.type == "info") {
+            this.balance = parseFloat(response["balance"]);
         } else { // Balance not found
-            return 0.0;
+            this.balance = 0.0;
         }
+
+        this.set_state({...this,});
+        console.log(`Balance: ${this.balance}`)
+        return this.balance;
     }
 
     async pending_send() {
         const response = await this.websocket.request({"type": "pendingSend", "address": this.address});
         if (response["link"] != "") {
-            await this.receive(response["amount"], response["link"]);
+            console.log("receiving")
+            await this.receive(parseFloat(response["sendAmount"]), response["link"]);
             return true;
         }
 
@@ -161,14 +180,14 @@ export class MurraxCoin {
         let previous = null;
         let balance = null;
 
-        if (response.type === "balance") { // Account exists
-            balance = parseFloat(response.balance);
+        if (response.type === "info") { // Account exists
+            balance = parseFloat(response.balance) + sendAmount;
             blockType = "receive";
-            previous = await this.websocket.request({"type": "getPrevious", "address": this.address});
+            previous = (await this.websocket.request({"type": "getPrevious", "address": this.address}))["link"];
 
         } else { // Account does not yet exist
             blockType = "open";
-            balance = 0.0;
+            balance = sendAmount;
             previous = "0".repeat(20);
         }
 
@@ -182,6 +201,8 @@ export class MurraxCoin {
         block["signature"] = sign_block(block, this.privateKey);
 
         response = await this.websocket.request(block);
+
+        await this.get_balance(); // Update balance
 
         if (response.type === "confirm") {
             return true;
@@ -201,12 +222,17 @@ export class WebSocketSecure {
     privateKey: any;
     messagePending: boolean;
     previousResponse: any;
+    receive: any;
 
-    constructor(url: string) {
+    constructor(url: string, receive: any) {
         this.url = url;
         this.messagePending = false;
         this.previousResponse = null;
         this.sessionKey = null;
+    }
+
+    set_receive_callback(callback: any) {
+        this.receive = callback;
     }
 
     async request(data: Object) {
@@ -229,28 +255,37 @@ export class WebSocketSecure {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
         this.messagePending = true;
-        this.websocket.onmessage = (event) => {
-            this.previousResponse = event.data;
+        this.websocket.onmessage = async (event) => {
+            let ciphertextIn, tagIn, nonceIn;
+            [ciphertextIn, tagIn, nonceIn] = event.data.split('|||');
+
+            const decipher = forge.cipher.createDecipher('AES-GCM', await this.getSessionKey());
+            decipher.start({iv: forge.util.decode64(nonceIn), tag: forge.util.decode64(tagIn)});
+            decipher.update(forge.util.createBuffer(forge.util.decode64(ciphertextIn)));
+            decipher.finish();
+
+            const plaintext = decipher.output;
+            const json = JSON.parse(plaintext.toString());
+
+            if (json.type == "sendAlert") {
+                await this.receive(parseFloat(json.sendAmount), json.link);
+            }
+
+            this.previousResponse = json;
         }
         this.websocket.send(message);
+
         while (this.previousResponse === null) { // Wait for response
             await new Promise(resolve => setTimeout(resolve, 100));
         }
+
         const response = this.previousResponse;
         this.previousResponse = null;
+        this.messagePending = false;
 
-        let ciphertextIn, tagIn, nonceIn;
-        [ciphertextIn, tagIn, nonceIn] = response.split('|||');
+        
 
-        const decipher = forge.cipher.createDecipher('AES-GCM', await this.getSessionKey());
-        decipher.start({iv: forge.util.decode64(nonceIn), tag: forge.util.decode64(tagIn)});
-        decipher.update(forge.util.createBuffer(forge.util.decode64(ciphertextIn)));
-        decipher.finish();
-
-        const plaintext = decipher.output;
-        const json = JSON.parse(plaintext.toString());
-
-        return json;
+        return response;
     }
     
     async connect() {

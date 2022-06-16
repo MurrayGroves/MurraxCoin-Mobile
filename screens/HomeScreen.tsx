@@ -2,54 +2,17 @@ import { FlatList, StyleSheet, Image, Pressable, Alert} from 'react-native';
 
 import { Text, View} from '../components/Themed';
 import { PrimaryBox, SecondaryBox } from '../components/Boxes';
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useBetween } from "use-between";
 import { MurraxCoin, getMXCKeyPair } from '../components/MurraxCoin';
+import {sharedMxcState} from '../App'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 //import crypto from 'crypto';
 
 
 export default function HomeScreen({ route, navigation }) {
-  let mxcKeyPair = null;
-  let wsKeyPair = null;
-  var my_address = "";
-
-  //crypto.web = window.crypto;
-  const mxcAccountState = () => {
-    const [myAddress, setMyAddress] = useState("");
-    const [privateKey, setPrivateKey] = useState("");
-    const [publicKey, setPublicKey] = useState("");
-    const [balance, setBalance] = useState(0.0);
-    return {
-      myAddress, setMyAddress, privateKey, setPrivateKey, publicKey, setPublicKey, balance, setBalance
-    };
-  };
-
-  const { myAddress, setMyAddress, publicKey, setPublicKey, privateKey, setPrivateKey, balance, setBalance } = mxcAccountState();
-  let mxc = null;
-  AsyncStorage.getItem("mxcPrivateKey").then(value => {
-    console.log(myAddress);
-    if (value === null) {
-      console.log("wtf")
-      Alert.alert(
-        "Please Wait!",
-        "App will be unresponsive while your keys are being generated. This may take a few minutes.",
-      )
-    }
-
-    if (myAddress !== "") {
-      return;
-    }
-
-    mxc = new MurraxCoin("ws://murraxcoin.murraygrov.es:6969");
-    setMyAddress(mxc.address);
-    mxc.pending_send().then(() => {
-      mxc.get_balance().then(balance => {
-        setBalance(balance);
-      });
-    });
-  })
-
+  const {mxc, setMxc} = sharedMxcState();
+  console.log("Re-rendered")
 
   let transactions = [{key: 1, type: "receive", amount: 12, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 2, type:"send", amount: 45, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 3, type: "claim", amount:39.713, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 4, type: "claim", amount: 39.714, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}]
 
@@ -101,7 +64,7 @@ export default function HomeScreen({ route, navigation }) {
               <Image source={require('../assets/images/cog-icon.png')} style={{margin: 10, height: 24, width: 24, alignSelf: 'flex-start'}}/>
             </Pressable>
             <View style={{alignItems: 'center', flex: 0.8, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0)'}}>
-              <Text style={{textAlign: 'center', alignSelf: 'center', fontSize: 20}}>{balance} MXC</Text>
+              <Text style={{textAlign: 'center', alignSelf: 'center', fontSize: 20}}>{mxc.balance} MXC</Text>
             </View>
           </View>
         </PrimaryBox>
