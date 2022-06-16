@@ -2483,6 +2483,11 @@
   "resolved" "https://registry.npmjs.org/atob/-/atob-2.1.2.tgz"
   "version" "2.1.2"
 
+"b4a@^1.0.1":
+  "integrity" "sha512-1aCQIzQJK7G0z1Una75tWMlwVAR8o+QHoAlnWc5XAxRVBESY9WsitfBgM5nPyDBP5HrhPU1Np4Pq2Y7CJQ+tVw=="
+  "resolved" "https://registry.npmjs.org/b4a/-/b4a-1.5.3.tgz"
+  "version" "1.5.3"
+
 "babel-core@^7.0.0-bridge.0":
   "integrity" "sha512-poPX9mZH/5CSanm50Q+1toVci6pv5KSRv/5TWCwtzQS5XEwn40BcCrgIeMFWP9CKKIniKXNxoIOnOq4VVlGXhg=="
   "resolved" "https://registry.npmjs.org/babel-core/-/babel-core-7.0.0-bridge.0.tgz"
@@ -2716,6 +2721,22 @@
   "version" "0.8.2"
   dependencies:
     "readable-stream" "~1.0.26"
+
+"blake2b-wasm@^2.4.0":
+  "integrity" "sha512-S1kwmW2ZhZFFFOghcx73+ZajEfKBqhP82JMssxtLVMxlaPea1p9uoLiUZ5WYyHn0KddwbLc+0vh4wR0KBNoT5w=="
+  "resolved" "https://registry.npmjs.org/blake2b-wasm/-/blake2b-wasm-2.4.0.tgz"
+  "version" "2.4.0"
+  dependencies:
+    "b4a" "^1.0.1"
+    "nanoassert" "^2.0.0"
+
+"blake2b@^2.1.4":
+  "integrity" "sha512-AyBuuJNI64gIvwx13qiICz6H6hpmjvYS5DGkG6jbXMOT8Z3WUJ3V1X0FlhIoT1b/5JtHE3ki+xjtMvu1nn+t9A=="
+  "resolved" "https://registry.npmjs.org/blake2b/-/blake2b-2.1.4.tgz"
+  "version" "2.1.4"
+  dependencies:
+    "blake2b-wasm" "^2.4.0"
+    "nanoassert" "^2.0.0"
 
 "blueimp-md5@^2.10.0":
   "integrity" "sha512-DRQrD6gJyy8FbiE4s+bDoXS9hiW3Vbx5uCdwvcCf3zLHL+Iv7LtGHLpr+GZV8rHG8tK766FGYBwRbu8pELTt+w=="
@@ -6872,6 +6893,11 @@
     "any-promise" "^1.0.0"
     "object-assign" "^4.0.1"
     "thenify-all" "^1.0.0"
+
+"nanoassert@^2.0.0":
+  "integrity" "sha512-7vO7n28+aYO4J+8w96AzhmU8G+Y/xpPDJz/se19ICsqj/momRbb9mh9ZUtkoJ5X3nTnPdhEJyc0qnM6yAsHBaA=="
+  "resolved" "https://registry.npmjs.org/nanoassert/-/nanoassert-2.0.0.tgz"
+  "version" "2.0.0"
 
 "nanoid@^3.1.23":
   "integrity" "sha512-MqBkQh/OHTS2egovRtLk45wEyNXwF+cokD+1YPf9u5VfJiRdAiRwB2froX5Co9Rh20xs4siNPm8naNotSD6RBw=="

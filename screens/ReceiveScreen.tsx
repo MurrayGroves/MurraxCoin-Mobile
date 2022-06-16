@@ -5,7 +5,7 @@ import { PrimaryBox, SecondaryBox } from '../components/Boxes';
 import React, { useState } from "react";
 import { useBetween } from "use-between";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getMXCKeyPair, getWSKeyPair, keyToAddress } from '../components/MurraxCoin';
+import { getMXCKeyPair, MurraxCoin } from '../components/MurraxCoin';
 
 
 export default function ReceiveScreen({ route, navigation }) {
@@ -24,29 +24,29 @@ export default function ReceiveScreen({ route, navigation }) {
   
     const { myAddress, setMyAddress, publicKey, setPublicKey, privateKey, setPrivateKey, balance, setBalance } = mxcAccountState();
 
+    let mxc = null;
     AsyncStorage.getItem("mxcPrivateKey").then(value => {
-        if (value === null) {
-          console.log("wtf")
-          Alert.alert(
-            "Please Wait!",
-            "App will be unresponsive while your keys are being generated. This may take a few minutes.",
-          )
-        }
-    
-        if (myAddress !== "") {
-          return;
-        }
-    
-        getMXCKeyPair().then(pair => {
-          mxcKeyPair = pair;
-          const address = keyToAddress(pair.publicKey);
-          setMyAddress(address);
-            
-          getWSKeyPair().then(pair => {
-            wsKeyPair = pair;
-          })
+      console.log(myAddress);
+      if (value === null) {
+        console.log("wtf")
+        Alert.alert(
+          "Please Wait!",
+          "App will be unresponsive while your keys are being generated. This may take a few minutes.",
+        )
+      }
+  
+      if (myAddress !== "") {
+        return;
+      }
+  
+      mxc = new MurraxCoin("ws://murraxcoin.murraygrov.es:6969");
+      setMyAddress(mxc.address);
+      mxc.pending_send().then(() => {
+        mxc.get_balance().then(balance => {
+          setBalance(balance);
         });
-      })
+      });
+    })
     let address_clean = `${myAddress.slice(0,10)}...${myAddress.slice(-6)}`;
     return (
         <View style={styles.outer}>

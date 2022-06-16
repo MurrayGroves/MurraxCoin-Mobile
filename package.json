@@ -24,6 +24,7 @@
     "assert": "^1.5.0",
     "big-integer": "^1.6.51",
     "big.js": "^6.1.1",
+    "blake2b": "^2.1.4",
     "browserify-zlib": "^0.1.4",
     "buffer": "^4.9.2",
     "console-browserify": "^1.2.0",

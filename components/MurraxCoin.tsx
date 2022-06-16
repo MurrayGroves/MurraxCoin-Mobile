@@ -9,6 +9,7 @@ import { Alert } from 'react-native';
 import * as adler32 from 'adler-32';
 import * as base32 from 'hi-base32';
 var forge = require('node-forge');
+var blake2b = require('blake2b')
 
 function toHexString(byteArray) {
   return Array.prototype.map.call(byteArray, function(byte) {
@@ -34,7 +35,7 @@ function stringFromArray(data)
   return str;
 }
 
-export async function getWSKeyPair() {
+async function getWSKeyPair() {
     const privateKey = await AsyncStorage.getItem('wsPrivateKey');
     if (privateKey !== null) {
         return {
@@ -95,13 +96,101 @@ export async function getMXCKeyPair() {
     }
 }
 
-export function keyToAddress(publicKey) {
+function keyToAddress(publicKey) {
     const checksum = adler32.buf(publicKey);
     const checksum_clean = base32.encode(checksum).replace(/=/g, '').toLowerCase();
     const address_fragment = base32.encode(publicKey).replace(/=/g, '').toLowerCase();
     const address = `mxc_${address_fragment}`;
 
     return address;
+}
+
+function hash_block(block) {
+    let output = new Uint8Array(64);
+    let input = Buffer.from(JSON.stringify(block));
+
+    const hash = blake2b(output.length).update(input).digest("hex");
+    return hash
+}
+
+function sign_block(block, privateKey) {
+    const data = Buffer.from(JSON.stringify(block));
+    const signature = nacl.nacl.sign.detached(data, privateKey);
+    return signature;
+}
+
+export class MurraxCoin {
+    privateKey: any;
+    publicKey: any;
+    websocket: WebSocketSecure;
+    address: string;
+
+    constructor(node: string) {
+        this.websocket = new WebSocketSecure(node);
+        this.address = "";
+        getMXCKeyPair().then(keypair => {
+            this.privateKey = keypair.privateKey;
+            this.publicKey = keypair.publicKey;
+            this.address = keyToAddress(this.publicKey);
+        })
+    }
+
+    async get_balance() {
+        const response = await this.websocket.request({"type": "balance", "address": this.address});
+        if (response.type === "balance") {
+            return parseFloat(response.balance);
+        } else { // Balance not found
+            return 0.0;
+        }
+    }
+
+    async pending_send() {
+        const response = await this.websocket.request({"type": "pendingSend", "address": this.address});
+        if (response["link"] != "") {
+            await this.receive(response["amount"], response["link"]);
+            return true;
+        }
+
+        return false;
+    }
+
+    async receive(sendAmount: number, send_block: string) {
+        let response = await this.websocket.request({"type": "balance", "address": this.address});
+
+        let blockType = null;
+        let previous = null;
+        let balance = null;
+
+        if (response.type === "balance") { // Account exists
+            balance = parseFloat(response.balance);
+            blockType = "receive";
+            previous = await this.websocket.request({"type": "getPrevious", "address": this.address});
+
+        } else { // Account does not yet exist
+            blockType = "open";
+            balance = 0.0;
+            previous = "0".repeat(20);
+        }
+
+        const representative = (await this.websocket.request({"type": "getRepresentative", "address": this.address}))["representative"];
+
+        let block = {
+            "type": blockType, "previous": previous, "representative": representative, "balance": balance, "link": send_block, "address": this.address,
+        }
+
+        block["id"] = hash_block(block);
+        block["signature"] = sign_block(block, this.privateKey);
+
+        response = await this.websocket.request(block);
+
+        if (response.type === "confirm") {
+            return true;
+        }
+        else {
+            console.log(response);
+            return false;
+        }
+    }
 }
 
 export class WebSocketSecure {

@@ -4,7 +4,7 @@ import { Text, View} from '../components/Themed';
 import { PrimaryBox, SecondaryBox } from '../components/Boxes';
 import React, { useState } from "react";
 import { useBetween } from "use-between";
-import { getMXCKeyPair, getWSKeyPair, keyToAddress, WebSocketSecure } from '../components/MurraxCoin';
+import { MurraxCoin, getMXCKeyPair } from '../components/MurraxCoin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 //import crypto from 'crypto';
 
@@ -26,6 +26,7 @@ export default function HomeScreen({ route, navigation }) {
   };
 
   const { myAddress, setMyAddress, publicKey, setPublicKey, privateKey, setPrivateKey, balance, setBalance } = mxcAccountState();
+  let mxc = null;
   AsyncStorage.getItem("mxcPrivateKey").then(value => {
     console.log(myAddress);
     if (value === null) {
@@ -40,29 +41,14 @@ export default function HomeScreen({ route, navigation }) {
       return;
     }
 
-    getMXCKeyPair().then(pair => {
-      mxcKeyPair = pair;
-      const address = keyToAddress(pair.publicKey);
-      setMyAddress(address);
-        
-      getWSKeyPair().then(pair => {
-        wsKeyPair = pair;
-      })
+    mxc = new MurraxCoin("ws://murraxcoin.murraygrov.es:6969");
+    setMyAddress(mxc.address);
+    mxc.pending_send().then(() => {
+      mxc.get_balance().then(balance => {
+        setBalance(balance);
+      });
     });
   })
-
-  let websocket = new WebSocketSecure("ws://murraxcoin.murraygrov.es:6969");
-  websocket.connect().then(() => {
-    websocket.request({"type": "balance", "address": myAddress}).then(response => {
-      console.log(response);
-      if (response.type == "rejection") {
-        setBalance(0.0);
-      } else {
-        setBalance(parseFloat(response.balance));
-      }
-    })
-  });
-
 
 
   let transactions = [{key: 1, type: "receive", amount: 12, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 2, type:"send", amount: 45, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 3, type: "claim", amount:39.713, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 4, type: "claim", amount: 39.714, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}]
