@@ -141,6 +141,10 @@ export class MurraxCoin {
         this.websocket.set_receive_callback(this.receive.bind(this))
     }
 
+    test(){
+        return "lol"
+    }
+
     static async new(node: string, set_state: any) {
         const keypair = await getMXCKeyPair();
         const websocket = new WebSocketSecure(node);
@@ -171,6 +175,30 @@ export class MurraxCoin {
         }
 
         return false;
+    }
+
+    send() {
+        return async (sendAmount: number, address: string) => {
+            const balance = await this.get_balance();
+            const previous = (await this.websocket.request({"type": "getPrevious", "address": this.address}))["link"];
+            const representative = (await this.websocket.request({"type": "getRepresentative", "address": this.address}))["representative"];
+
+            let block = {"type": "send", "address": this.address, "link": address, "balance": balance - sendAmount, "previous": previous, "representative": representative, "sendAmount": sendAmount};
+            block["id"] = hash_block(block);
+            block["signature"] = sign_block(block, this.privateKey);
+    
+            const response = await this.websocket.request(block);
+    
+            await this.get_balance();
+    
+            if (response.type === "confirm") {
+                return true;
+            }
+            else {
+                console.log(response);
+                return false;
+            }
+        }
     }
 
     async receive(sendAmount: number, send_block: string) {
@@ -224,7 +252,7 @@ export class WebSocketSecure {
     previousResponse: any;
     receive: any;
 
-    constructor(url: string, receive: any) {
+    constructor(url: string) {
         this.url = url;
         this.messagePending = false;
         this.previousResponse = null;

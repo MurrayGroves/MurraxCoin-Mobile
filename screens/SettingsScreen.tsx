@@ -5,7 +5,7 @@ import { PrimaryBox, SecondaryBox } from '../components/Boxes';
 import React, { useState } from "react";
 import { useBetween } from "use-between";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {sharedMxcState} from '../App'
+import {sharedMxcState} from '../components/shared_mxc'
 
 export default function SettingsScreen({ route, navigation }) {
     const {mxc, setMxc} = sharedMxcState();

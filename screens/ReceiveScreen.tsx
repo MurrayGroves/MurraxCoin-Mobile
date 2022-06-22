@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet, Image, Pressable} from 'react-native';
+import { FlatList, StyleSheet, Image, Pressable, TouchableOpacity} from 'react-native';
 
 import { Text, View} from '../components/Themed';
 import { PrimaryBox, SecondaryBox } from '../components/Boxes';
@@ -6,8 +6,8 @@ import React, { useState, useEffect } from "react";
 import { useBetween } from "use-between";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMXCKeyPair, MurraxCoin } from '../components/MurraxCoin';
-import {sharedMxcState} from '../App'
-
+import {sharedMxcState} from '../components/shared_mxc'
+import Clipboard from '@react-native-community/clipboard';
 
 export default function ReceiveScreen({ route, navigation }) {
   const {mxc, setMxc} = sharedMxcState();
@@ -15,10 +15,12 @@ export default function ReceiveScreen({ route, navigation }) {
   return (
       <View style={styles.outer}>
           <View style={styles.container}>
-              <PrimaryBox style={{flex: 0.2, borderRadius: 20, marginTop: 10, marginBottom: 10, justifyContent: 'flex-start'}}>
+              <Pressable onPress={() => Clipboard.setString(mxc.address)} style={{flex:0.2}}>
+              <PrimaryBox style={{flex: 1, borderRadius: 20, marginTop: 10, marginBottom: 10, justifyContent: 'flex-start'}}>
                   <Text style={{fontSize: 25, margin: 10}}>My Address</Text>
                   <Text style={{fontSize: 25, color: '#121212'}}>{mxc.address_display}</Text>
               </PrimaryBox>
+              </Pressable>
 
               <PrimaryBox style={{flex: 0.45, borderRadius: 20, marginTop: 10, marginBottom: 10, justifyContent: 'flex-start'}}>
                   <Text style={{flex: 0.92, fontSize: 25, marginBottom: 10}}>QR</Text>

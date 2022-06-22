@@ -90,7 +90,7 @@ export function TextInputBox(props) {
 
     return (
         <Box style={style}>
-            <TextInput style={{fontSize: 25, color: 'rgba(0,0,0,0.3)'}} onChange={props.onChange} value={props.value} placeholder={props.placeholder}/>
+            <TextInput style={{fontSize: 25, color: 'rgba(0,0,0,0.3)'}} onChangeText={props.onChangeText} value={props.value} placeholder={props.placeholder}/>
         </Box>
     )
 }

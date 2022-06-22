@@ -4,8 +4,8 @@ import { Text, View} from '../components/Themed';
 import { PrimaryBox, SecondaryBox } from '../components/Boxes';
 import React, { useEffect, useState } from "react";
 import { useBetween } from "use-between";
-import { MurraxCoin, getMXCKeyPair } from '../components/MurraxCoin';
-import {sharedMxcState} from '../App'
+import { MurraxCoin, getMXCKeyPair, WebSocketSecure } from '../components/MurraxCoin';
+import {sharedMxcState} from '../components/shared_mxc'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 //import crypto from 'crypto';
 
@@ -13,6 +13,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function HomeScreen({ route, navigation }) {
   const {mxc, setMxc} = sharedMxcState();
   console.log("Re-rendered")
+  useEffect(() => {
+    const construct = async () => {
+      const murraxcoin = await MurraxCoin.new("ws://murraxcoin.murraygrov.es:6969", setMxc);
+      await murraxcoin.pending_send();
+      await murraxcoin.get_balance();
+      console.log(murraxcoin.address)
+      setMxc(murraxcoin);
+    }
+  
+    construct().catch(console.error)
+  }, [])
 
   let transactions = [{key: 1, type: "receive", amount: 12, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 2, type:"send", amount: 45, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 3, type: "claim", amount:39.713, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 4, type: "claim", amount: 39.714, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}]
 

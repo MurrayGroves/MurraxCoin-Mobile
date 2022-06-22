@@ -29,27 +29,8 @@ import 'react-native-get-random-values'
 
 const Stack = createNativeStackNavigator();
 
-const mxcState = () => {
-  const [mxc, setMxc] = useState(Object);
-  return {mxc, setMxc};
-}
-
-export const sharedMxcState = () => useBetween(mxcState);
-
 
 export default function App() {
-  const {mxc, setMxc} = sharedMxcState();
-
-  useEffect(() => {
-    const construct = async () => {
-      const murraxcoin = await MurraxCoin.new("ws://murraxcoin.murraygrov.es:6969", setMxc);
-      await murraxcoin.pending_send();
-      await murraxcoin.get_balance();
-      setMxc(murraxcoin);
-    }
-  
-    construct().catch(console.error)
-  }, [])
 
   return (
     <>
