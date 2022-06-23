@@ -1,4 +1,5 @@
 import { FlatList, StyleSheet, Image, Pressable} from 'react-native';
+import Snackbar from 'react-native-snackbar';
 
 import { Text, View} from '../components/Themed';
 import { PrimaryBox, SecondaryBox } from '../components/Boxes';
@@ -6,6 +7,7 @@ import React, { useState } from "react";
 import { useBetween } from "use-between";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {sharedMxcState} from '../components/shared_mxc'
+import Clipboard from '@react-native-community/clipboard';
 
 export default function SettingsScreen({ route, navigation }) {
     const {mxc, setMxc} = sharedMxcState();
@@ -14,8 +16,13 @@ export default function SettingsScreen({ route, navigation }) {
         <View style={styles.outer}>
             <View style={styles.container}>
                 <PrimaryBox style={{flex: 0.3, borderRadius: 20, marginTop: 10, marginBottom: 10, justifyContent: 'flex-start'}}>
-                    <Text style={{fontSize: 25, margin: 10}}>My Address</Text>
-                    <Text style={{fontSize: 25, color: '#121212'}}>{mxc.address_display}</Text>
+                    <Pressable onPress={() => {
+                        Clipboard.setString(mxc.address);
+                        Snackbar.show({text: "Address copied to clipboard!", duration: Snackbar.LENGTH_SHORT, backgroundColor: "orange"});
+                    }}>
+                        <Text style={{fontSize: 25, textAlign: 'center'}}>My Address</Text>
+                        <Text style={{fontSize: 25, color: '#121212'}}>{mxc.address_display}</Text>
+                    </Pressable>
                 </PrimaryBox>
 
                 <View style={{flex: 0.2, flexDirection: 'row', marginTop: 0, backgroundColor: 'rgba(0,0,0,0)'}}>

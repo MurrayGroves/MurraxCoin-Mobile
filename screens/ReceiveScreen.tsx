@@ -8,6 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMXCKeyPair, MurraxCoin } from '../components/MurraxCoin';
 import {sharedMxcState} from '../components/shared_mxc'
 import Clipboard from '@react-native-community/clipboard';
+import Snackbar from 'react-native-snackbar';
+import QRCode from 'react-native-qrcode-svg';
 
 export default function ReceiveScreen({ route, navigation }) {
   const {mxc, setMxc} = sharedMxcState();
@@ -15,16 +17,19 @@ export default function ReceiveScreen({ route, navigation }) {
   return (
       <View style={styles.outer}>
           <View style={styles.container}>
-              <Pressable onPress={() => Clipboard.setString(mxc.address)} style={{flex:0.2}}>
-              <PrimaryBox style={{flex: 1, borderRadius: 20, marginTop: 10, marginBottom: 10, justifyContent: 'flex-start'}}>
-                  <Text style={{fontSize: 25, margin: 10}}>My Address</Text>
+              <PrimaryBox style={{flex: 0.15, borderRadius: 20, marginTop: 10, marginBottom: 10, justifyContent: 'flex-start'}}>
+                <Pressable onPress={() => {
+                  Clipboard.setString(mxc.address);
+                  Snackbar.show({text: "Address copied to clipboard!", duration: Snackbar.LENGTH_SHORT, backgroundColor: "orange"});
+                }}>
+                  <Text style={{fontSize: 25, textAlign: 'center'}}>My Address</Text>
                   <Text style={{fontSize: 25, color: '#121212'}}>{mxc.address_display}</Text>
+                </Pressable>
               </PrimaryBox>
-              </Pressable>
 
               <PrimaryBox style={{flex: 0.45, borderRadius: 20, marginTop: 10, marginBottom: 10, justifyContent: 'flex-start'}}>
                   <Text style={{flex: 0.92, fontSize: 25, marginBottom: 10}}>QR</Text>
-                  <Image style={{ width: 200, height: 200}} source={{uri: "https://www.investopedia.com/thmb/ZG1jKEKttKbiHi0EkM8yJCJp6TU=/1148x1148/filters:no_upscale():max_bytes(150000):strip_icc()/qr-code-bc94057f452f4806af70fd34540f72ad.png"}}/>
+                  <QRCode value={mxc.address} size={200}/>
                   <Text style={{color: '#121212', fontSize: 20}}>Get the sender to scan</Text>
               </PrimaryBox>
 

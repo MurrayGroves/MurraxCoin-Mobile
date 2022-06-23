@@ -20,6 +20,7 @@ import HomeScreen from './screens/HomeScreen';
 import ReceiveScreen from './screens/ReceiveScreen';
 import SendScreen from './screens/SendScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import ScanScreen from './screens/ScanScreen';
 
 import { MurraxCoin, getMXCKeyPair } from './components/MurraxCoin';
 
@@ -40,6 +41,7 @@ export default function App() {
         <Stack.Screen name="Receive" component={ReceiveScreen} />
         <Stack.Screen name="Send" component={SendScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Scan" component={ScanScreen} />
       </Stack.Navigator>
     </NavigationContainer>
     </>

@@ -141,10 +141,6 @@ export class MurraxCoin {
         this.websocket.set_receive_callback(this.receive.bind(this))
     }
 
-    test(){
-        return "lol"
-    }
-
     static async new(node: string, set_state: any) {
         const keypair = await getMXCKeyPair();
         const websocket = new WebSocketSecure(node);
