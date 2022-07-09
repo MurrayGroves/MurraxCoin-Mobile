@@ -166,21 +166,60 @@ export class MurraxCoin {
 
     static async get_cached_balance() {
         let transactions = JSON.parse(await AsyncStorage.getItem('transactions'));
-        if (transactions.length > 0 && transactions[0]["previous"] == "00000000000000000000") {
+
+        if (transactions.length == 0 ) {
+            return 0.0
+        }
+
+        if (transactions[0]["previous"] == "00000000000000000000") {
             transactions = transactions.reverse()
         }
         return transactions[0].balance
     }
 
+    get_seed() {
+        return keyToAddress(this.privateKey).replace("mxc_", "").toUpperCase()
+    }
+
+    async set_seed(seed: string) {
+        let keyPair = null;
+        if (seed.length > 0) {
+            const privateKeyEncoded = seed.slice(0,103) + "="
+            const privateKey = new Uint8Array(base32.decode.asBytes(privateKeyEncoded));
+            keyPair = nacl.nacl.sign.keyPair.fromSecretKey(privateKey);
+        } else { // Generate new keypair if no backup phrase specified.
+            keyPair = nacl.nacl.sign.keyPair();
+        }
+
+        await AsyncStorage.setItem('mxcPrivateKey', toHexString(keyPair.secretKey));
+        await AsyncStorage.setItem('mxcPublicKey', toHexString(keyPair.publicKey));
+
+        const murraxcoin = await MurraxCoin.new("ws://murraxcoin.murraygrov.es:6969", this.set_state);
+        while (true) {
+          const resp = await murraxcoin.pending_send();
+          if (resp == false) {
+            break;
+          }
+        }
+        await murraxcoin.get_balance();
+        await murraxcoin.get_transactions();
+        console.log(murraxcoin.address)
+        this.set_state(murraxcoin);
+    }
+
     async get_transactions() {
-        console.log("awaogoo")
-        //await AsyncStorage.setItem('transactions', JSON.stringify([]));
         if (this.transactions.length == 0) {
             console.log("transactions empty")
             this.transactions = JSON.parse(await AsyncStorage.getItem('transactions'));
         }
 
         let head = await this.websocket.request({"type": "getHead", "address": this.address});
+        if (head["type"] == "rejection") {
+            this.transactions = []
+            this.cleaned_transactions = []
+            await AsyncStorage.setItem("transactions", JSON.stringify(this.transactions));
+            return this.transactions;
+        }
         let next_block = head;
 
 
