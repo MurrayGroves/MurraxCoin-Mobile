@@ -31,6 +31,7 @@ export default function HomeScreen({ route, navigation }) {
       }
       await murraxcoin.get_balance();
       await murraxcoin.get_transactions();
+      await murraxcoin.get_representative();
       console.log(murraxcoin.address)
       setMxc(murraxcoin);
     }

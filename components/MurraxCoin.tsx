@@ -132,6 +132,8 @@ export class MurraxCoin {
     transactions: Array<Object>;
     cleaned_transactions: Array<Object>;
     state_num: number;
+    representative: string;
+    representative_display: string;
 
     constructor(node: string, keypair: any, websocket: WebSocketSecure, set_state: any) {
         this.websocket = websocket;
@@ -145,6 +147,8 @@ export class MurraxCoin {
         this.transactions = [];
         this.cleaned_transactions = [];
         this.state_num = 0;
+        this.representative = "";
+        this.representative_display = "";
     }
 
     static async new(node: string, set_state: any) {
@@ -203,8 +207,40 @@ export class MurraxCoin {
         }
         await murraxcoin.get_balance();
         await murraxcoin.get_transactions();
+        await murraxcoin.get_representative();
         console.log(murraxcoin.address)
         this.set_state(murraxcoin);
+    }
+
+    async get_representative() {
+        const resp = await this.websocket.request({"type": "getRepresentative", "address": this.address});
+        this.representative = resp.representative;
+        this.representative_display = `${this.representative.slice(0,10)}...${this.representative.slice(-6)}`;
+        this.state_num = Math.random();
+        this.set_state({...this, state_num: this.state_num});
+        return this.representative;
+    }
+
+    async set_representative(representative: string) {
+        //return async (representative: string) => {
+            const balance = await this.get_balance();
+            const previous = (await this.websocket.request({"type": "getPrevious", "address": this.address}))["link"];
+
+            let block = {"type": "change", "address": this.address, "balance": balance, "previous": previous, "representative": representative};
+            block["id"] = hash_block(block);
+            block["signature"] = sign_block(block, this.privateKey);
+
+            const response = await this.websocket.request(block);
+
+            await this.get_representative();
+            if (response.type === "confirm") {
+                return true;
+            }
+            else {
+                console.log(response);
+                return false;
+            }
+        //}
     }
 
     async get_transactions() {
@@ -222,10 +258,8 @@ export class MurraxCoin {
         }
         let next_block = head;
 
-
         let transactions = this.transactions
         this.cleaned_transactions = await MurraxCoin.clean_transactions(transactions);
-
 
         if (this.transactions.length != 0){
             if (transactions[0]["previous"] == "00000000000000000000") {
@@ -233,9 +267,15 @@ export class MurraxCoin {
             }
             let new_transactions: Array<Object> = [];
             while (true) {
-                if (transactions[0]["id"] == head["block"]["id"] || new_transactions[0] == head["block"]["id"]) { // Up to date
+                console.log(new_transactions[new_transactions.length - 1])
+                console.log(head["block"]["id"])
+                let done = false;
+                if (new_transactions.length > 0) {
+                    done = new_transactions[new_transactions.length -1]["previous"] == transactions[0]["id"]
+                }
+                if (transactions[0]["id"] == head["block"]["id"] || done) { // Up to date
                     console.log("Up to date")
-                    this.transactions = this.transactions.concat(new_transactions);
+                    this.transactions = new_transactions.concat(transactions);
                     this.cleaned_transactions = await MurraxCoin.clean_transactions(transactions);
                     await AsyncStorage.setItem('transactions', JSON.stringify(transactions));
                     return this.transactions;
@@ -339,7 +379,7 @@ export class MurraxCoin {
             const previous = (await this.websocket.request({"type": "getPrevious", "address": this.address}))["link"];
             const representative = (await this.websocket.request({"type": "getRepresentative", "address": this.address}))["representative"];
 
-            let block = {"type": "send", "address": this.address, "link": address, "balance": balance - sendAmount, "previous": previous, "representative": representative, "sendAmount": sendAmount};
+            let block = {"type": "send", "address": this.address, "link": address, "balance": balance - sendAmount, "previous": previous, "representative": representative};
             block["id"] = hash_block(block);
             block["signature"] = sign_block(block, this.privateKey);
     
