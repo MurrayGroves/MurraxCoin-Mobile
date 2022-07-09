@@ -26,8 +26,6 @@ import { MurraxCoin, getMXCKeyPair } from './components/MurraxCoin';
 
 import 'react-native-get-random-values'
 
-//import PolyfillCrypto from 'react-native-webview-crypto'
-
 const Stack = createNativeStackNavigator();
 
 

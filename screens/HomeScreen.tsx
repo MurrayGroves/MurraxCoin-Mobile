@@ -15,17 +15,28 @@ export default function HomeScreen({ route, navigation }) {
   console.log("Re-rendered")
   useEffect(() => {
     const construct = async () => {
+      const cached_murraxcoin = {
+        cleaned_transactions: await MurraxCoin.get_cached_cleaned_transactions(),
+        balance: await MurraxCoin.get_cached_balance(),
+      }
+      console.log(cached_murraxcoin)
+      setMxc(cached_murraxcoin);
+
       const murraxcoin = await MurraxCoin.new("ws://murraxcoin.murraygrov.es:6969", setMxc);
-      await murraxcoin.pending_send();
+      while (true) {
+        const resp = await murraxcoin.pending_send();
+        if (resp == false) {
+          break;
+        }
+      }
       await murraxcoin.get_balance();
+      await murraxcoin.get_transactions();
       console.log(murraxcoin.address)
       setMxc(murraxcoin);
     }
   
     construct().catch(console.error)
   }, [])
-
-  let transactions = [{key: 1, type: "receive", amount: 12, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 2, type:"send", amount: 45, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 3, type: "claim", amount:39.713, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}, {key: 4, type: "claim", amount: 39.714, address: "mxc_ik3huhli2wz7f6245gd4n6bnl44ds6vri6haria2slrqj7ld5zwqdvvrb2q"}]
 
   function renderTransaction(transaction) {
     let icon = "";
@@ -46,22 +57,21 @@ export default function HomeScreen({ route, navigation }) {
     }
 
     let address_clean = `${transaction.item.address.slice(0,10)}...${transaction.item.address.slice(-6)}`;
+
     return (
       <PrimaryBox style={{margin: 4}}>
         <View style={{flex:1, flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0)'}}>
-          <View style={{flex: 0.9, flexDirection: 'row', alignSelf: "stretch", backgroundColor: 'rgba(0,0,0,0)', alignItems: 'flex-start', justifyContent: 'flex-start',}}>
+          <View style={{flex: 1.1, flexShrink: 0,flexDirection: 'row', alignSelf: "stretch", backgroundColor: 'rgba(0,0,0,0)', alignItems: 'flex-start', justifyContent: 'flex-start',}}>
             <Image style={{height: 24, width:24, margin: 7}} source={icon}/>
             <View style={{backgroundColor: 'rgba(0,0,0,0)'}}>
               <Text>{type}</Text>
-              <Text style={{color: '#121212'}}>{transaction.item.amount} MXC</Text> 
+              <Text style={{color: '#121212'}}>{transaction.item.amount.toString().slice(0,12) } MXC</Text> 
             </View>
           </View>
           <View style={{flex: 1.1, flexDirection: 'row', alignSelf: "stretch", backgroundColor: 'rgba(0,0,0,0)', alignItems: 'flex-end', justifyContent: 'flex-end', margin:9, marginRight: 15}}>
             <Text style={{color: '#121212'}}>{address_clean}</Text>
           </View>
         </View>
-
-
       </PrimaryBox>
     )
   }
@@ -84,7 +94,7 @@ export default function HomeScreen({ route, navigation }) {
           Transactions
         </Text>
         
-        <FlatList style={{flex: 1, alignSelf: "stretch"}} data={transactions} renderItem={renderTransaction}/>
+        <FlatList style={{flex: 1, alignSelf: "stretch"}} data={mxc.cleaned_transactions} renderItem={renderTransaction} extraData={mxc.state_num}/>
 
         <View style={{flex: 0.2, flexDirection: 'row'}}>
           <Pressable onPress={() => navigation.navigate("Receive")} style={{flex:1, height: 70, bottom: -30}}>
